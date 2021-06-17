@@ -1,28 +1,22 @@
-# bot.py
 import os
-
-import discord
 import random
+
+from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-GUILD = os.getenv('DISCORD_GUILD')
 
-client = discord.Client()
+bot = commands.Bot(command_prefix='!')
 
-@client.event
-async def on_ready():
-    guild = discord.utils.find(lambda g: g.name == GUILD, client.guilds)
+@bot.command(name='random')
+async def nine_nine(ctx):
+    response = random.randrange(0,10)
+    await ctx.send(response)
 
-    print(
-        f'{client.user} is connected to the following guild:\n'
-        f'{guild.name}(id: {guild.id})'
-    )
-
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == bot.user:
         return
 
     moist_responses = ["Lovely choice of vocabulary",
@@ -33,5 +27,7 @@ async def on_message(message):
     if 'moist' in message.content.lower():
         response = random.choice(moist_responses)
         await message.channel.send(response)
+	
+    await bot.process_commands(message)
 
-client.run(TOKEN)
+bot.run(TOKEN)
