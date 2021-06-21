@@ -12,9 +12,22 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 bot = commands.Bot(command_prefix='!',intents=discord.Intents.all())
 
 class settings:
-    doMoistRespond = True
+    doKeywordRespond = True
+
+class keyword:
+    name = ""
+    responses = ["Lovely choice of vocabulary",
+		"Wow that is really interesting",
+		"I like this guy",
+		"Whatever you said, I agree!"]
+
+    # constructor
+    def __init__(self,val):
+        # initializing instance variable
+        self.name = val
 
 botSettings = settings()
+keywords = [keyword("moist")]
 
 #Gives a rabdom number between 2 given values
 #If only 1 arguement is passed, from 0 to X
@@ -48,49 +61,79 @@ async def set_bot_settings(ctx, *args):
     if (ctx.message.author.guild_permissions.administrator == False):
         ctx.send("You must have admin privallages to change bot settings")
     
-    if ((len(args) == 2)and(args[0] == "moist_respond")):
+    if ((len(args) == 2)and(args[0] == "keyword_respond")):
         try:
-            set_moist_response(args[1])
+            set_keyword_response(args[1])
         except ValueError as e:
-            ctx.send(e)
+            await ctx.send(e)
     else:
         await print_settings_options(ctx)
+
+@bot.command(name='add')
+async def add_keyword(ctx, *args):
+    global keywords
+    added = [""]
+
+    if len(args) == 0:
+        await ctx.send("You must provide at least one keyword to add")
+
+    for item in args:
+        if is_keyword(item) == False:
+            keywords.append(keyword(item))
+            added.append(item)
+        else:
+            await ctx.send("Keyword " + item + " already exists")
+
+    await ctx.send("Succesfully addes keywords:" + ' '.join(added))
 
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
 
-    await message.channel.send(response)
+    await bot.process_commands(message)
 
     #ingore comamnd that contain keyphrase
-    if message.content.startswith('!'):
+    if ((message.content.startswith('!')) or (botSettings.doKeywordRespond ==  False)):
         return
+        
+    response = ""
 
-    moist_responses = ["Lovely choice of vocabulary",
-		"Wow that is really interesting",
-		"I like this guy",
-		"Whatever you said, I agree!"]
+    global keywords
+    for item in keywords:
+        print(item.name)
+        if item.name in message.content.lower():
+            response = random.choice(item.responses)
+            break
 
-    if (('moist' in message.content.lower()) & (botSettings.doMoistRespond)):
-        response = random.choice(moist_responses)
-	
+    if (response == ""):
+        return
     
+    await message.channel.send(response)
+    
+   
 
-def set_moist_response(val: str):
+def set_keyword_response(val: str):
     global botSettings
     if (val.lower == "true"):
-        botSettings.doMoistRespond == True
+        botSettings.doKeywordRespond == True
     elif (val.lower == "false"):
-        botSettings.doMoistRespond == False
+        botSettings.doKeywordRespond == False
     else:
         raise ValueError("Parameter must be 'true' or 'false'")
 
 async def print_settings_options(ctx):
     await ctx.send("""
     Valid arguements are:
-    moist_respond (true/false)  -Sets whether the bot responds to 'moist' being in a message
+    keyword_respond (true/false)  -Sets whether the bot responds to set keywords being in a message
     """)
+
+def is_keyword(keyword: str):
+    global keywords
+    for item in keywords:
+        if item.name == keyword:
+            return True
+    return False
 
 
 bot.run(TOKEN)
