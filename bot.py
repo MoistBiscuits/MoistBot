@@ -1,19 +1,25 @@
 import os
 import random
+import discord
 
-from discord.ext import commands
 from dotenv import load_dotenv
+from discord.ext import commands
+from discord_slash import SlashCommand, SlashContext
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-bot = commands.Bot(command_prefix='!')
+bot = commands.Bot(command_prefix='!',intents=discord.Intents.all())
 
-<<<<<<< HEAD
+class settings:
+    doMoistRespond = True
+
+botSettings = settings()
+
 #Gives a rabdom number between 2 given values
 #If only 1 arguement is passed, from 0 to X
 #if none, from 0 to 10
-@bot.command(name='random', help='Gives a random number between 2 values')
+@bot.command(name='random')
 async def random_number(ctx, *args):
     lower = 0
     upper = 10
@@ -37,32 +43,54 @@ async def random_number(ctx, *args):
     response = random.randrange(lower,upper)
     await ctx.send(response)
 
+@bot.command(name='settings')
+async def set_bot_settings(ctx, *args):
+    if (ctx.message.author.guild_permissions.administrator == False):
+        ctx.send("You must have admin privallages to change bot settings")
+    
+    if ((len(args) == 2)and(args[0] == "moist_respond")):
+        try:
+            set_moist_response(args[1])
+        except ValueError as e:
+            ctx.send(e)
+    else:
+        await print_settings_options(ctx)
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
 
-=======
-@bot.command(name='random')
-async def nine_nine(ctx):
-    response = random.randrange(0,10)
-    await ctx.send(response)
+    await message.channel.send(response)
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
+    #ingore comamnd that contain keyphrase
+    if message.content.startswith('!'):
         return
 
->>>>>>> 8ddff542a4d7c9c5d44c19ba103ab165e36755e9
     moist_responses = ["Lovely choice of vocabulary",
 		"Wow that is really interesting",
 		"I like this guy",
 		"Whatever you said, I agree!"]
 
-    if 'moist' in message.content.lower():
+    if (('moist' in message.content.lower()) & (botSettings.doMoistRespond)):
         response = random.choice(moist_responses)
-        await message.channel.send(response)
 	
-    await bot.process_commands(message)
+    
+
+def set_moist_response(val: str):
+    global botSettings
+    if (val.lower == "true"):
+        botSettings.doMoistRespond == True
+    elif (val.lower == "false"):
+        botSettings.doMoistRespond == False
+    else:
+        raise ValueError("Parameter must be 'true' or 'false'")
+
+async def print_settings_options(ctx):
+    await ctx.send("""
+    Valid arguements are:
+    moist_respond (true/false)  -Sets whether the bot responds to 'moist' being in a message
+    """)
+
 
 bot.run(TOKEN)
