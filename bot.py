@@ -1,3 +1,4 @@
+from asyncio.windows_events import NULL
 import os
 import random
 import discord
@@ -69,22 +70,48 @@ async def set_bot_settings(ctx, *args):
     else:
         await print_settings_options(ctx)
 
-@bot.command(name='add')
-async def add_keyword(ctx, *args):
+@bot.command(name='keyword')
+async def keyword_command(ctx, *args):
+    if ((len(args) > 2)and(args[0] == "add")):
+        await add_keyword(ctx, args[1:])
+    elif ((len(args) > 2)and(args[0] == "remove")):
+        await remove_keyword(ctx, args[1:])
+    else:
+        await print_keyword_options(ctx)
+
+async def add_keyword(ctx, args):
     global keywords
-    added = [""]
+    added = []
 
     if len(args) == 0:
         await ctx.send("You must provide at least one keyword to add")
 
     for item in args:
         if is_keyword(item) == False:
-            keywords.append(keyword(item))
-            added.append(item)
+            keywords.append(keyword(str(item)))
+            added.append(str(item))
         else:
-            await ctx.send("Keyword " + item + " already exists")
+            await ctx.send("Keyword " + str(item) + " already exists")
 
-    await ctx.send("Succesfully addes keywords:" + ' '.join(added))
+    if len(added) >0:
+        await ctx.send("Succesfully added keywords: " + ' '.join(added))
+
+async def remove_keyword(ctx, args):
+    global keywords
+    removed = []
+
+    if len(args) == 0:
+        await ctx.send("You must provide at least one keyword to remove")
+
+    for item in args:
+        if is_keyword(item) == True:
+            keywords.remove(get_keyword(item))
+            removed.append(str(item))
+        else:
+            await ctx.send("Keyword " + str(item) + " does not exist")
+
+    if len(removed) > 0:
+        await ctx.send("Succesfully removed keywords: " + ' '.join(removed))
 
 @bot.event
 async def on_message(message):
@@ -111,8 +138,6 @@ async def on_message(message):
     
     await message.channel.send(response)
     
-   
-
 def set_keyword_response(val: str):
     global botSettings
     if (val.lower == "true"):
@@ -128,12 +153,26 @@ async def print_settings_options(ctx):
     keyword_respond (true/false)  -Sets whether the bot responds to set keywords being in a message
     """)
 
+async def print_keyword_options(ctx):
+    await ctx.send("""
+    Valid arguements are:
+    add (words)    -Adds a set of words as keyphrases that the bot will respond to
+    remove (words)    -Removes a set of keyphrases
+    """)
+
 def is_keyword(keyword: str):
     global keywords
     for item in keywords:
         if item.name == keyword:
             return True
     return False
+
+def get_keyword(keyword: str):
+    global keywords
+    for item in keywords:
+        if item.name == keyword:
+            return item
+    return NULL
 
 
 bot.run(TOKEN)
