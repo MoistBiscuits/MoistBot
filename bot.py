@@ -91,12 +91,16 @@ async def set_bot_settings(ctx, *args):
 #Command keyword allows users to add, remove and edit the keywords the bot responds to
 @bot.command(name='keyword')
 async def keyword_command(ctx, *args):
+    print(args)
     #!keyword add {list of strings}
-    if ((len(args) > 2)and(args[0] == "add")):
+    if ((len(args) > 1)and(args[0] == 'add')):
         await add_keyword(ctx, args[1:])
     #!keyword remove {list of strings}
-    elif ((len(args) > 2)and(args[0] == "remove")):
+    elif ((len(args) > 1)and(args[0] == 'remove')):
         await remove_keyword(ctx, args[1:])
+    #!keyword clear {list of strings}
+    elif ((len(args) > 1)and(args[0] == 'clear')):
+        await clear_keyword(ctx, args[1:])
     else:
         #On invalid arguement, print the possible allowed arguements
         await print_keyword_options(ctx)
@@ -146,6 +150,28 @@ async def remove_keyword(ctx, args):
     #if keywords were removed, print them to the user
     if len(removed) > 0:
         await ctx.send("Succesfully removed keywords: " + ' '.join(removed))
+
+#Removes all phrases associated with a set of keywords
+async def clear_keyword(ctx, args):
+    #list of cleared keywords
+    cleared=[]
+
+    if len(args) == 0:
+        await ctx.send("You must provide at least one keyword to clear")
+
+    #for each keyword passed
+    for item in args:
+        #If the keyword exists in the bot
+        if is_keyword(item) == True:
+            #Clear it
+            get_keyword(item).responses = [""]
+            cleared.append(str(item))
+        else:
+            await ctx.send("Keyword " + str(item) + " does not exist")
+
+    #if keywords were cleared, print them to the user
+    if len(cleared) > 0:
+        await ctx.send("Succesfully cleared phrases of keywords: " + ' '.join(cleared))
 
 #Called whenever a message is entered into chat
 @bot.event
@@ -204,6 +230,7 @@ async def print_keyword_options(ctx):
     Valid arguements are:
     add (words)    -Adds a set of words as keyphrases that the bot will respond to
     remove (words)    -Removes a set of keyphrases
+    clear (words)    -Clears all responses of a given set of keyphrases       
     """)
 
 #Return true if a given string is the name of a keyword
