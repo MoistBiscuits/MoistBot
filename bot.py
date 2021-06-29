@@ -2,6 +2,8 @@ from asyncio.windows_events import NULL
 import os
 import random
 import discord
+import re
+from discord.message import PartialMessage
 
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -101,6 +103,8 @@ async def keyword_command(ctx, *args):
     #!keyword clear {list of strings}
     elif ((len(args) > 1)and(args[0] == 'clear')):
         await clear_keyword(ctx, args[1:])
+    elif ((len(args) > 1)and(args[0] == 'edit')):
+        await edit_keyword(ctx, args[1:])
     else:
         #On invalid arguement, print the possible allowed arguements
         await print_keyword_options(ctx)
@@ -173,6 +177,83 @@ async def clear_keyword(ctx, args):
     if len(cleared) > 0:
         await ctx.send("Succesfully cleared phrases of keywords: " + ' '.join(cleared))
 
+#Command tree for editing keywords
+async def edit_keyword(ctx, args):
+    #!keyword edit add {keyword} {phrase}
+    if ((len(args) > 1)and(args[0] == 'add')):
+        await add_keyphrase(ctx, args[1:])
+    #!keyword edit remove {keyword} {phrase}
+    elif ((len(args) > 1)and(args[0] == 'remove')):
+        await remove_keyphrase(ctx, args[1:])
+    else:
+        await print_edit_options(ctx)
+
+#Adds a new phrase to a keyword
+async def add_keyphrase(ctx, args):
+    global keywords
+
+    if (len(args) < 2):
+        await ctx.send("You must provide a keyword and a response to add to it")
+        return
+    
+    if (len(args) > 2):
+        await ctx.send('Too many arguements, expected (keyword) "(phrase)"')
+        return
+    
+    keyword = args[0]
+
+    if (is_keyword(keyword) == True):
+        keyword = get_keyword(keyword)
+    else:
+        await ctx.send("Keyword " + keyword + " does not exist")
+        return
+
+    #discord library groups agurements encased in quotes so we dont have to
+    phrase = args[1]
+
+    if (phrase == ''):
+        await ctx.send("Could not add phrase: " + str(args[1]))
+    else:
+        #Add phrase
+        keyword.responses.append(phrase)
+        await ctx.send("Added phrase: " + phrase)
+
+#remove a keyphrase from a keyword
+async def remove_keyphrase(ctx, args):
+    global keywords
+
+    if (len(args) < 2):
+        await ctx.send("You must provide a keyword and a response to remove")
+        return
+    
+    if (len(args) > 2):
+        await ctx.send('Too many arguements, expected (keyword) "(phrase)"')
+        return
+    
+    keyword = args[0]
+
+    if (is_keyword(keyword) == True):
+        keyword = get_keyword(keyword)
+    else:
+        await ctx.send("Keyword " + keyword + " does not exist")
+        return
+
+    #discord library groups agurements encased in quotes so we dont have to
+    phrase = args[1]
+    
+    for response in keyword.responses:
+        #if the phrase is a response
+        if (phrase == str(response)):
+            #remove it and return
+            keyword.responses.remove(response)
+            await ctx.send("Removed phrase succesfully")
+            return
+    
+    #if phrase is not found
+    ctx.send("Response does not exist in keyword: " + keyword.name)
+
+
+
 #Called whenever a message is entered into chat
 @bot.event
 async def on_message(message):
@@ -228,9 +309,18 @@ async def print_settings_options(ctx):
 async def print_keyword_options(ctx):
     await ctx.send("""
     Valid arguements are:
-    add (words)    -Adds a set of words as keyphrases that the bot will respond to
-    remove (words)    -Removes a set of keyphrases
-    clear (words)    -Clears all responses of a given set of keyphrases       
+    add (words)    -Adds a set of words as keywords that the bot will respond to
+    remove (words)    -Removes a set of keywords
+    clear (words)    -Clears all responses of a given set of keywords
+    edit (params)    -Edit an existing keyword     
+    """)
+
+#send into chat the paramters for !keyword edit command
+async def print_edit_options(ctx):
+    await ctx.send("""
+    Valid arguements are:
+    add (keyword) (text)    -Add a phrase to a keyword
+    remove (keyword) (text)    -Remove a phrase from a keyword
     """)
 
 #Return true if a given string is the name of a keyword
