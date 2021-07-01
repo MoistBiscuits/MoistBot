@@ -3,6 +3,7 @@ import os
 import random
 import discord
 import re
+import xml.etree.ElementTree as ET
 from discord.message import PartialMessage
 
 from dotenv import load_dotenv
@@ -33,10 +34,6 @@ class keyword:
     def __init__(self,val):
         # initializing instance variable
         self.name = val
-
-botSettings = settings()
-#Initially start with keyword 'moist'
-keywords = [keyword("moist")]
 
 #Gives a rabdom number between 2 given values
 #If only 1 arguement is passed, from 0 to X
@@ -168,7 +165,7 @@ async def clear_keyword(ctx, args):
         #If the keyword exists in the bot
         if is_keyword(item) == True:
             #Clear it
-            get_keyword(item).responses = [""]
+            get_keyword(item).responses = []
             cleared.append(str(item))
         else:
             await ctx.send("Keyword " + str(item) + " does not exist")
@@ -276,7 +273,7 @@ async def on_message(message):
     for item in keywords:
         print(item.name)
         #if the message contains the keyword
-        if item.name in message.content.lower():
+        if (item.name in message.content.lower()) and (item.responses != []):
             #pick a response and break
             response = random.choice(item.responses)
             break
@@ -338,6 +335,29 @@ def get_keyword(keyword: str):
         if item.name == keyword:
             return item
     return NULL
+
+#Load keywords from xml file
+def load_keywords(filename):
+    global keywords
+
+    file = open(filename)
+    tree = ET.parse(file)
+    root = tree.getroot()
+    for child in root.findall('keyword'):
+        word = keyword(child.get('name'))
+        word.responses = []
+        for phrase in child.find('phrases').findall('phrase'):
+            word.responses.append(phrase.text)
+
+        keywords.append(word)
+
+#Init bot settings
+botSettings = settings()
+keywords = []
+print(os.getcwd())
+path = "C:/Users/Aqeel Little/Documents/Python projects/discord bot/MoistBot"
+os.chdir(path)
+load_keywords('data.xml')
 
 #Run the bot
 bot.run(TOKEN)
