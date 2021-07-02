@@ -348,6 +348,14 @@ def get_keyword(keyword: str):
 def load_keywords(filename):
     global keywords
 
+    if os.path.isfile(filename) == False:
+        root = ET.Element("data")
+        tree = ET.ElementTree(root)
+        tree.write(filename)
+        new = keyword('moist')
+        keywords.append(new)
+        parse_add_keyword(new)
+
     file = open(filename)
     tree = ET.parse(file)
     root = tree.getroot()
