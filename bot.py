@@ -121,6 +121,7 @@ async def add_keyword(ctx, args):
         if is_keyword(item) == False:
             #Add it
             keywords.append(keyword(str(item)))
+            parse_add_keyword(keyword(str(item)))
             added.append(str(item))
         else:
             await ctx.send("Keyword " + str(item) + " already exists")
@@ -144,6 +145,7 @@ async def remove_keyword(ctx, args):
         if is_keyword(item) == True:
             #Remove it
             keywords.remove(get_keyword(item))
+            parse_remove_keyword(get_keyword(item))
             removed.append(str(item))
         else:
             await ctx.send("Keyword " + str(item) + " does not exist")
@@ -166,6 +168,8 @@ async def clear_keyword(ctx, args):
         if is_keyword(item) == True:
             #Clear it
             get_keyword(item).responses = []
+            parse_remove_keyword(get_keyword(item))
+            parse_add_keyword(get_keyword(item))
             cleared.append(str(item))
         else:
             await ctx.send("Keyword " + str(item) + " does not exist")
@@ -213,6 +217,8 @@ async def add_keyphrase(ctx, args):
     else:
         #Add phrase
         keyword.responses.append(phrase)
+        parse_remove_keyword(keyword)
+        parse_add_keyword(keyword)
         await ctx.send("Added phrase: " + phrase)
 
 #remove a keyphrase from a keyword
@@ -243,6 +249,8 @@ async def remove_keyphrase(ctx, args):
         if (phrase == str(response)):
             #remove it and return
             keyword.responses.remove(response)
+            parse_remove_keyword(keyword)
+            parse_add_keyword(keyword)
             await ctx.send("Removed phrase succesfully")
             return
     
@@ -351,13 +359,54 @@ def load_keywords(filename):
 
         keywords.append(word)
 
+#Save a keyword to the xml file
+def parse_add_keyword(word: keyword):
+    global filename
+    #open xml
+    file = open(filename)
+    tree = ET.parse(file)
+    root = tree.getroot()
+
+    #create new child keyword
+    new=ET.SubElement(root,'keyword')
+    new.set('name', word.name)
+
+    #give it a phrases child node
+    phrases=ET.SubElement(new,'phrases')
+
+    #fill it with the phrases of the keyword
+    for item in word.responses:
+        phrase=ET.SubElement(phrases,'phrase')
+        phrase.text=item
+    
+    tree.write(filename)
+        
+#remove a keyword from the xml file
+def parse_remove_keyword(word: keyword):
+    global filename
+    #open xml
+    file = open(filename)
+    tree = ET.parse(file)
+    root = tree.getroot()
+
+    #find and remove keyword
+    for node in root.findall('keyword'):
+        if node.get('name') == word.name:
+            root.remove(node)
+            break
+    
+    tree.write(filename)
+
+
+
 #Init bot settings
 botSettings = settings()
 keywords = []
 print(os.getcwd())
 path = "C:/Users/Aqeel Little/Documents/Python projects/discord bot/MoistBot"
 os.chdir(path)
-load_keywords('data.xml')
+filename = 'data.xml'
+load_keywords(filename)
 
 #Run the bot
 bot.run(TOKEN)
